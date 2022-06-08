@@ -7,24 +7,64 @@ import argparse
 import cv2
 import torch
 import numpy as np
+import pyrealsense2 as rs
 from predictor import Predictor
 
 
 class Camera:
     def __init__(self, *args, **kwargs):
-        raise NotImplementedError('Please implement your camera class in "demo.py"')
+        self.configs = []
+        self.serial_numbers = []
+        self.pipelines = []
+        self.profiles = []
+        self.img_path = "/home/ws1/instr/test_data"
+        
+        ctx = rs.context()
+        devices = ctx.query_devices()
+        for device in devices:
+            serial = device.get_info(rs.camera_info.serial_number)
+
+            config = rs.config()
+            config.enable_device(serial)
+            config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 15)
+
+            pipeline = rs.pipeline(ctx)
+            profile = pipeline.start(config)
+
+            self.pipelines.append(pipeline)
+            self.profiles.append(profile)
+            self.serial_numbers.append(serial)
+            self.configs.append(config)
+
+
+        print("cameras initialized")
+        # raise NotImplementedError('Please implement your camera class in "demo.py"')
 
     def get_stereo(self):
-        raise NotImplementedError('Please implement a method that returns a pair of stereo images (RGB, uint8 numpy arrays) in "demo.py"')
+        # raise NotImplementedError('Please implement a method that returns a pair of stereo images (RGB, uint8 numpy arrays) in "demo.py"')
+        images = []
+        for pipeline in self.pipelines:
+            frames = pipeline.wait_for_frames()
+            color_frame = frames.get_color_frame()
+            if not color_frame:
+                continue
+            color_image = np.asanyarray(color_frame.get_data())
+            images.append(color_image)
+        left = images[0]
+        right = images[1]
+        # left = cv2.imread(self.img_path + "/left_rgb/22.png")
+        # right = cv2.imread(self.img_path + "/right_rgb/22.png")
+        return left, right
 
 
 def demo():
     parser = argparse.ArgumentParser()
     parser.add_argument('--state-dict', type=str, default='./pretrained_instr/models/pretrained_model.pth')
-    parser.add_argument('--focal-length', type=float, default=1390.0277099609375/(2208/640))  # ZED intrinsics per default
+    # parser.add_argument('--focal-length', type=float, default=1390.0277099609375/(2208/640))  # ZED intrinsics per default
+    parser.add_argument('--focal-length', type=float, default=1390.0277099609375/(1980/640))  # IntelRealsense D415 intrinsics per default
     parser.add_argument('--baseline', type=float, default=0.12)  # ZED intrinsics per default
-    parser.add_argument('--viz', default=False, action='store_true')
-    parser.add_argument('--save', default=False, action='store_true')
+    parser.add_argument('--viz', default=True, action='store_true')
+    parser.add_argument('--save', default=True, action='store_true')
     parser.add_argument('--save-dir', type=str, default='./recorded_images')
     parser.add_argument('--aux-modality', type=str, default='depth', choices=['depth', 'disp'])
     parser.add_argument('--alpha', type=float, default=0.4)

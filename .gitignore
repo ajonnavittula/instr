@@ -1,0 +1,6 @@
+STIOS/
+pretrained_instr/
+recorded_images/
+test_data/
+*.DS_Store
+**/__pycache__/
