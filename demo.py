@@ -18,6 +18,7 @@ class Camera:
         self.pipelines = []
         self.profiles = []
         self.img_path = "/home/ws1/instr/test_data"
+        self.img_no = 0
         
         ctx = rs.context()
         devices = ctx.query_devices()
@@ -42,18 +43,22 @@ class Camera:
 
     def get_stereo(self):
         # raise NotImplementedError('Please implement a method that returns a pair of stereo images (RGB, uint8 numpy arrays) in "demo.py"')
-        images = []
-        for pipeline in self.pipelines:
-            frames = pipeline.wait_for_frames()
-            color_frame = frames.get_color_frame()
-            if not color_frame:
-                continue
-            color_image = np.asanyarray(color_frame.get_data())
-            images.append(color_image)
-        left = images[0]
-        right = images[1]
-        # left = cv2.imread(self.img_path + "/left_rgb/22.png")
-        # right = cv2.imread(self.img_path + "/right_rgb/22.png")
+        # images = []
+        # for pipeline in self.pipelines:
+        #     frames = pipeline.wait_for_frames()
+        #     color_frame = frames.get_color_frame()
+        #     if not color_frame:
+        #         continue
+        #     color_image = np.asanyarray(color_frame.get_data())
+        #     images.append(color_image)
+        # left = images[0]
+        # right = images[1]
+
+        left = cv2.imread(self.img_path + "/left_rgb/t_" + str(self.img_no) + ".png")
+        right = cv2.imread(self.img_path + "/right_rgb/t_" + str(self.img_no) + ".png")
+        # left = cv2.imread(self.img_path + "/left_rgb/00.png")
+        # right = cv2.imread(self.img_path + "/right_rgb/00.png")
+        self.img_no += 1
         return left, right
 
 
@@ -63,7 +68,7 @@ def demo():
     # parser.add_argument('--focal-length', type=float, default=1390.0277099609375/(2208/640))  # ZED intrinsics per default
     parser.add_argument('--focal-length', type=float, default=1390.0277099609375/(1980/640))  # IntelRealsense D415 intrinsics per default
     parser.add_argument('--baseline', type=float, default=0.12)  # ZED intrinsics per default
-    parser.add_argument('--viz', default=True, action='store_true')
+    parser.add_argument('--viz', default=False, action='store_true')
     parser.add_argument('--save', default=True, action='store_true')
     parser.add_argument('--save-dir', type=str, default='./recorded_images')
     parser.add_argument('--aux-modality', type=str, default='depth', choices=['depth', 'disp'])
@@ -89,6 +94,9 @@ def demo():
     # main forward loop
     while 1:
         left, right = cam.get_stereo()
+        if left is None or right is None:
+            print("prediction complete")
+            break
 
         with torch.no_grad():
             pred_segmap, pred_depth = net.predict(left, right)

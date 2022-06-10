@@ -39,7 +39,7 @@ class Predictor:
     def _preds_to_map(self, preds):
         preds = torch.sigmoid(preds)
 
-        preds[preds < 0.5] = 0
+        preds[preds < 0.1] = 0
         # select based on argmax
         valid_maps = preds.argmax(dim=1, keepdim=False)
         # don't automatically select pixels where all channels have predicted 0
@@ -49,6 +49,7 @@ class Predictor:
 
     def colorize_preds(self, preds, rgb=None, alpha=0.5):
         # colorize, if any instances have been found
+        # print(preds)
         if preds.max() != 0:
             preds = colorize_tensor(preds, num_classes=50)
         else:
