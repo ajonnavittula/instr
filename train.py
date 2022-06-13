@@ -9,7 +9,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from data_io.data_loader import DatasetHDF5, worker_init_fn
+from data_io.data_loader import DatasetHDF5, DatasetRaw, worker_init_fn
 from model.instr import INSTR
 from utils.utils import setup, DataLoader
 
@@ -18,8 +18,10 @@ def train():
     cfg = setup()
 
     # initialize dataset and dataloader
-    train_set = DatasetHDF5(base_path=cfg.DATA.TRAIN.ROOT, split='train', apply_augmentation=cfg.DATA.TRAIN.TRANSFORMS)
-    val_set = DatasetHDF5(base_path=cfg.DATA.VAL.ROOT, split='val', apply_augmentation=cfg.DATA.VAL.TRANSFORMS)
+    # train_set = DatasetHDF5(base_path=cfg.DATA.TRAIN.ROOT, split='train', apply_augmentation=cfg.DATA.TRAIN.TRANSFORMS)
+    # val_set = DatasetHDF5(base_path=cfg.DATA.VAL.ROOT, split='val', apply_augmentation=cfg.DATA.VAL.TRANSFORMS)
+    train_set = DatasetRaw(base_path=cfg.DATA.TRAIN.ROOT, split='train', apply_augmentation=cfg.DATA.TRAIN.TRANSFORMS)
+    val_set = DatasetRaw(base_path=cfg.DATA.VAL.ROOT, split='val', apply_augmentation=cfg.DATA.VAL.TRANSFORMS)
 
     train_loader = DataLoader(train_set, batch_size=cfg.DATA.TRAIN.BATCH_SIZE, shuffle=True, num_workers=cfg.DATA.NUM_WORKERS, drop_last=True, worker_init_fn=worker_init_fn)
     val_loader = DataLoader(val_set, batch_size=cfg.DATA.VAL.BATCH_SIZE, shuffle=False, num_workers=cfg.DATA.NUM_WORKERS, drop_last=True, worker_init_fn=worker_init_fn)

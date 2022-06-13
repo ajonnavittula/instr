@@ -42,7 +42,7 @@ try:
           frames = pipeline.wait_for_frames()
           color_frame = frames.get_color_frame()
           depth_frame = frames.get_depth_frame()
-          print(np.asanyarray(depth_frame.get_data()) * 1e-3)
+          print(np.asanyarray(depth_frame.get_data()) * 1e-3) # depth in m
           if not color_frame:
               continue  
           color_image = np.asanyarray(color_frame.get_data())

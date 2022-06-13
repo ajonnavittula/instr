@@ -5,3 +5,5 @@ test_data/
 *.DS_Store
 **/__pycache__/
 .vscode/
+SPS_dataset/
+output/

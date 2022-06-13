@@ -112,3 +112,58 @@ class DatasetHDF5(BaseDataset):
         sample.add(key='disparity', value=disp, tb=_convert_disp)
 
         return sample
+
+class DatasetRaw(BaseDataset):
+    """
+    Load data from raw images and numpy arrays in folders instead of HDF5 files
+    """
+
+    def __init__(self, base_path, split='train', apply_augmentation=False):
+        super().__init__(split=split, apply_augmentation=apply_augmentation)
+        self.base_path = base_path
+
+        self.data_samples = [p for p in Path(base_path + "/left_rgb").rglob('*.png')]
+        self.len = len(self.data_samples)
+
+        if self.len == 0:
+            print('No data samples found')
+
+        # augmentations
+        self._transform_aug = transforms.Compose([
+            transforms.RandomApply([augm.SharpnessAugmentation(factor_interval=(0.,2.))],p=0.4),
+            transforms.RandomApply([augm.ContrastAugmentation(factor_interval=(0.2,1.))],p=0.3),
+            transforms.RandomApply([augm.BrightnessAugmentation(factor_interval=(0.1,1.))],p=0.5),
+            transforms.RandomApply([augm.ColorAugmentation(factor_interval=(0.0,0.5))],p=0.3),
+            transforms.RandomApply([augm.ChannelShuffle()], p=0.3),
+            transforms.RandomApply([augm.GaussianBlur(radius=[1,3])], p=0.2),
+            transforms.RandomApply([augm.SaltAndPepperNoise(prob=0.005)], p=0.2),
+        ])
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, idx):
+        cv2.setNumThreads(0)  # deadlock prevention: https://github.com/pytorch/pytorch/issues/1355
+
+        # receive filename as a png
+        filename = self.data_samples[idx].as_posix().split("/")[-1]
+        # strip extension from filename
+        filename = filename.split(".")[0]
+
+        left_rgb = cv2.imread(self.base_path + "/left_rgb/" + filename + ".png")
+        right_rgb = cv2.imread(self.base_path + "/right_rgb/" + filename + ".png")
+        depth = np.load(self.base_path + "/depth/" + filename + ".npy")
+        segmap = cv2.imread(self.base_path + "/gt/" + filename + ".png")
+        
+        if self.split != 'test':
+            baseline = 0.12
+
+        disp = self.depth_to_disp(depth, baseline)
+
+        sample = pekdict()
+        sample.add(key='color_0', value=self.process_rgb(left_rgb), tb=_convert_rgb)
+        sample.add(key='color_1', value=self.process_rgb(right_rgb), tb=_convert_rgb)
+        sample.add(key='segmap', value=self.process_segmentation_label(segmap), tb=_convert_instanceseg)
+        sample.add(key='disparity', value=disp, tb=_convert_disp)
+
+        return sample

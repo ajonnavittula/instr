@@ -99,6 +99,7 @@ def bipartite_matching_segmentation_loss(pred, target, power=0.2, pos_weight=1.,
     # extend tar with some zero tensor channels
     if tgts_onehot.ndim == 3:
         tgts_onehot = tgts_onehot.unsqueeze(-1)
+    print(tgts_onehot.shape)
     tgts_onehot = tgts_onehot.permute(0, 3, 1, 2)  # [bsize, n_targets, height, width]
     tgts_extend = torch.zeros_like(preds).to(preds.device)
     n_obj_tar = tgts_onehot.shape[1]
